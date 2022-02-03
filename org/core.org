@@ -459,7 +459,7 @@ docker exec -it naviserver /bin/bash
 :CUSTOM_ID: ----github--trigger-on-push
 :END:
 #+begin_src sh :shebang ""
-  Trigger:1
+  Trigger: 3
 #+end_src
 ** ../.gitignore :code:
 :PROPERTIES:
