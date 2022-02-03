@@ -330,7 +330,7 @@ After start open the naviserver will be accessible by url `http://localhost:8090
 
 # Continues integration
 
-For  build and push docker images using  [Github Actions workflow](https://github.com/oupfiz5/build-tcl/blob/master/.github/workflows/on-push.yaml). Flow process is [GitHub flow](https://guides.github.com/introduction/flow/).
+For  build and push docker images using  [Github Actions workflow](https://github.com/oupfiz5/naviserver/blob/master/.github/workflows/on-push.yaml). Flow process is [GitHub flow](https://guides.github.com/introduction/flow/).
 
 
 <a id="troubleshooting"></a>

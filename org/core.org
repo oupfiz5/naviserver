@@ -237,7 +237,7 @@ After start open the naviserver will be accessible by url =http://localhost:8090
 :PROPERTIES:
 :CUSTOM_ID: continues-integration
 :END:
-For  build and push docker images using  [[https://github.com/oupfiz5/build-tcl/blob/master/.github/workflows/on-push.yaml][Github Actions workflow]]. Flow process is [[https://guides.github.com/introduction/flow/][GitHub flow]].
+For  build and push docker images using  [[https://github.com/oupfiz5/naviserver/blob/master/.github/workflows/on-push.yaml][Github Actions workflow]]. Flow process is [[https://guides.github.com/introduction/flow/][GitHub flow]].
 * Troubleshooting
 :PROPERTIES:
 :CUSTOM_ID: troubleshooting
