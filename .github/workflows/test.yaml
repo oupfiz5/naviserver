@@ -32,8 +32,7 @@ on:
   workflow_dispatch:
 
 # * Environments
-env:
-  IMAGE_TAG: "${{ github.sha }}"
+# env:
 
 # * Jobs
 jobs:
@@ -59,9 +58,9 @@ jobs:
       - name: Naviserver. Build. Check image and container.
         run: |
           echo "::group::Build image"
-          export IMAGE_TAG="${{ github.sha }}"
-          export IMAGE="${IMAGE_REPOSITORY}/${IMAGE_NAME}:${IMAGE_TAG}"
           echo "Build image"
+          set -a; source ${GITHUB_WORKSPACE}/src/VERSIONS ; set +a;
+          export IMAGE="${IMAGE:-${IMAGE_REPOSITORY}/${IMAGE_NAME}:${IMAGE_TAG}}"
           cd ${GITHUB_WORKSPACE}/src/hook
           ./build.sh
           echo "::endgroup::"
