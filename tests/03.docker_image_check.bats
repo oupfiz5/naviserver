@@ -2,10 +2,11 @@
 load './helpers.bash'
 
 setup() {
-      . ../src/VERSIONS
+    . ../src/VERSIONS
+    IMAGE="${IMAGE:-${IMAGE_REPOSITORY}/${IMAGE_NAME}:${IMAGE_TAG}}"
 
-      VERSION=$(
-      curl --silent "https://api.github.com/repos/goodwithtech/dockle/releases/latest" | \
+    VERSION=$(
+        curl --silent "https://api.github.com/repos/goodwithtech/dockle/releases/latest" | \
           grep '"tag_name":' | \
           sed -E 's/.*"v([^"]+)".*/\1/' \
          )

@@ -32,8 +32,7 @@ on:
   workflow_dispatch:
 
 # * Environments
-env:
-  IMAGE_TAG: "${{ github.sha }}"
+# env:
 
 # * Jobs
 jobs:
@@ -61,7 +60,7 @@ jobs:
           echo "::group::Build image"
           echo "Build image"
           set -a; source ${GITHUB_WORKSPACE}/src/VERSIONS ; set +a;
-          export IMAGE_TAG="${{ github.sha }}"
+          export IMAGE="${IMAGE:-${IMAGE_REPOSITORY}/${IMAGE_NAME}:${IMAGE_TAG}}"
           cd ${GITHUB_WORKSPACE}/src/hook
           ./build.sh
           echo "::endgroup::"

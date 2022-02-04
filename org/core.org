@@ -426,8 +426,7 @@ docker exec -it naviserver /bin/bash
     workflow_dispatch:
 
   # * Environments
-  env:
-    IMAGE_TAG: "${{ github.sha }}"
+  # env:
 
   # * Jobs
   jobs:
@@ -455,7 +454,7 @@ docker exec -it naviserver /bin/bash
             echo "::group::Build image"
             echo "Build image"
             set -a; source ${GITHUB_WORKSPACE}/src/VERSIONS ; set +a;
-            export IMAGE_TAG="${{ github.sha }}"
+            export IMAGE="${IMAGE:-${IMAGE_REPOSITORY}/${IMAGE_NAME}:${IMAGE_TAG}}"
             cd ${GITHUB_WORKSPACE}/src/hook
             ./build.sh
             echo "::endgroup::"
@@ -975,6 +974,19 @@ set ::env(LANG) en_US.UTF-8
          -p 127.0.0.1:8090:8080 \
          "${IMAGE}"
 #+end_src
+** stop.sh :code:
+:PROPERTIES:
+:CUSTOM_ID: stop-sh
+:END:
+#+name: stop.sh
+#+begin_src sh
+  set -a; source ./VERSIONS ; set +a;
+
+  IMAGE="${IMAGE:-${IMAGE_REPOSITORY}/${IMAGE_NAME}:${IMAGE_TAG}}"
+
+  docker container stop "${CONTAINER_NAME}"
+  docker container rm "${CONTAINER_NAME}"
+#+end_src
 * Tests :test:noexport:
 :PROPERTIES:
 :header-args:bats+:   :tangle (concat (file-name-directory (mapconcat 'identity (split-string  buffer-file-name "org/") "")) "/tests/" (nth 4 (org-heading-components)) )
@@ -1045,10 +1057,11 @@ load '.bats-battery/bats-support/load.bash'
 #+begin_src bats :results output pp :noweb strip-export
 
   setup() {
-        . ../src/VERSIONS
+      . ../src/VERSIONS
+      IMAGE="${IMAGE:-${IMAGE_REPOSITORY}/${IMAGE_NAME}:${IMAGE_TAG}}"
 
-        VERSION=$(
-        curl --silent "https://api.github.com/repos/goodwithtech/dockle/releases/latest" | \
+      VERSION=$(
+          curl --silent "https://api.github.com/repos/goodwithtech/dockle/releases/latest" | \
             grep '"tag_name":' | \
             sed -E 's/.*"v([^"]+)".*/\1/' \
            )
@@ -1078,6 +1091,7 @@ load '.bats-battery/bats-support/load.bash'
 
   setup() {
       . ../src/VERSIONS
+      IMAGE="${IMAGE:-${IMAGE_REPOSITORY}/${IMAGE_NAME}:${IMAGE_TAG}}"
   }
 
   @test "Verify container run" {
