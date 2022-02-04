@@ -270,7 +270,7 @@ Set the timezone for the container, defaults to UTC. To set the timezone set the
 
     docker run -itd \
            --restart always \
-           --name=naviserver-s6 \
+           --name=naviserver \
            --env 'TZ=Europe/Moscow' \
            -p 127.0.0.1:8090:8080 \
            oupfiz5/naviserver:4.99.23
