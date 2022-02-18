@@ -60,7 +60,7 @@ jobs:
           echo "::group::Build image"
           echo "Build image"
           set -a; source ${GITHUB_WORKSPACE}/src/VERSIONS ; set +a;
-          export IMAGE="${IMAGE:-${IMAGE_REPOSITORY}/${IMAGE_NAME}:${IMAGE_TAG}}"
+          export IMAGE_TAG="${UBUNTU_IMAGE_TAG}-${NS_IMAGE_TAG}"
           cd ${GITHUB_WORKSPACE}/src/hook
           ./build.sh
           echo "::endgroup::"
