@@ -592,6 +592,7 @@ docker exec -it naviserver /bin/bash
   # ** Cmd
   CMD [ "-f", "-u","nsadmin","-g","nsadmin","-t", "/usr/local/ns/conf/nsd-config.tcl"]
 #+end_src
+
 ** hook/build.sh :code:
 :PROPERTIES:
 :CUSTOM_ID: hook-build-sh
@@ -1036,8 +1037,6 @@ load '.bats-battery/bats-support/load.bash'
 
 #+end_src
 
-#+RESULTS:
-
 ** 02.dockerfile_check.bats :test:
 :PROPERTIES:
 :CUSTOM_ID: 02-dockerfile-check-bats
@@ -1079,10 +1078,6 @@ load '.bats-battery/bats-support/load.bash'
       assert_success
     }
 #+end_src
-
-#+RESULTS:
-: 1..1
-: ok 1 Check docker image
 
 ** 04.container_check.bats :test:
 :PROPERTIES:
@@ -1209,8 +1204,6 @@ load '.bats-battery/bats-support/load.bash'
                          "${IMAGE_NAME}"
   exit $?
 #+end_src
-
-#+RESULTS:
 
 ** .dockleignore :test:
 :PROPERTIES:
