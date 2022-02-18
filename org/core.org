@@ -378,6 +378,7 @@ docker exec -it naviserver /bin/bash
           run: |
             echo "::group::Prepare environment"
             set -a; source ${GITHUB_WORKSPACE}/src/VERSIONS ; set +a;
+            export IMAGE_TAG="${UBUNTU_IMAGE_TAG}-${NS_IMAGE_TAG}"
             cd ${GITHUB_WORKSPACE}/src/hook
             echo "::endgroup::"
             echo "::group::Build image"
@@ -454,7 +455,7 @@ docker exec -it naviserver /bin/bash
             echo "::group::Build image"
             echo "Build image"
             set -a; source ${GITHUB_WORKSPACE}/src/VERSIONS ; set +a;
-            export IMAGE="${IMAGE:-${IMAGE_REPOSITORY}/${IMAGE_NAME}:${IMAGE_TAG}}"
+            export IMAGE_TAG="${UBUNTU_IMAGE_TAG}-${NS_IMAGE_TAG}"
             cd ${GITHUB_WORKSPACE}/src/hook
             ./build.sh
             echo "::endgroup::"
@@ -592,6 +593,7 @@ docker exec -it naviserver /bin/bash
   # ** Cmd
   CMD [ "-f", "-u","nsadmin","-g","nsadmin","-t", "/usr/local/ns/conf/nsd-config.tcl"]
 #+end_src
+
 ** hook/build.sh :code:
 :PROPERTIES:
 :CUSTOM_ID: hook-build-sh
@@ -900,15 +902,6 @@ set ::env(LANG) en_US.UTF-8
 #ns_logctl severity Debug(sql) on
 #ns_logctl severity Debug on
 #+end_src
-** rootfs/etc/naviserver/env-defaults :code:
-:PROPERTIES:
-:CUSTOM_ID: rootfs-etc-naviserver-env-defaults
-:END:
-#+begin_src sh :shebang ""
-  export NS_USER="${NS_USER:-nsadmin}"
-  export NS_GROUP="${NS_GROUP:-nsadmin}"
-  export NS_CONF="${NS_CONF:-/usr/local/ns/conf/nsd-config.tcl}"
-#+end_src
 ** builds/env-vars.sh :code:
 :PROPERTIES:
 :CUSTOM_ID: builds-env-vars-sh
@@ -916,16 +909,6 @@ set ::env(LANG) en_US.UTF-8
 #+begin_src sh
   # shellcheck shell=bash
   export PREFIX="${PREFIX:-/usr/local/ns}"
-
-  # * Versions
-  export NS_VERSION="${NS_VERSION:-4.99.23}"
-  export NS_MODULES_VERSION="${NS_MODULES_VERSION:-4.99.23}"
-  export RL_JSON_VERSION="${RL_JSON_VERSION:-0.11.1}"
-  export TDOM_VERSION="${TDOM_VERSION:-0.9.1}"
-  export THREAD_VERSION="${THREAD_VERSION:-2.8.6}"
-  export TCL_VERSION="${TCL_VERSION:-8.6.11}"
-  export TCLLIB_VERSION="${TCLLIB_VERSION:-1.20}"
-  export XOTCL_VERSION="${XOTCL_VERSION:-2.3.0}"
 
   # * Options
   export WGET_OPTIONS="${WGET_OPTIONS:-""}"
@@ -1036,8 +1019,6 @@ load '.bats-battery/bats-support/load.bash'
 
 #+end_src
 
-#+RESULTS:
-
 ** 02.dockerfile_check.bats :test:
 :PROPERTIES:
 :CUSTOM_ID: 02-dockerfile-check-bats
@@ -1079,10 +1060,6 @@ load '.bats-battery/bats-support/load.bash'
       assert_success
     }
 #+end_src
-
-#+RESULTS:
-: 1..1
-: ok 1 Check docker image
 
 ** 04.container_check.bats :test:
 :PROPERTIES:
@@ -1209,8 +1186,6 @@ load '.bats-battery/bats-support/load.bash'
                          "${IMAGE_NAME}"
   exit $?
 #+end_src
-
-#+RESULTS:
 
 ** .dockleignore :test:
 :PROPERTIES:
