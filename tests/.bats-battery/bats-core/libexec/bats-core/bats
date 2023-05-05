@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -e
 
-export BATS_VERSION='1.8.0'
+export BATS_VERSION='1.9.0'
 VALID_FORMATTERS="pretty, junit, tap, tap13"
 
 version() {
@@ -40,11 +40,22 @@ HELP_TEXT_HEADER
                             A two character string of code quote delimiters
                             or 'custom' which requires setting $BATS_BEGIN_CODE_QUOTE and 
                             $BATS_END_CODE_QUOTE. Can also be set via $BATS_CODE_QUOTE_STYLE
+  --line-reference-format   Controls how file/line references e.g. in stack traces are printed:
+                              - comma_line (default): a.bats, line 1
+                              - colon:  a.bats:1
+                              - uri: file:///tests/a.bats:1
+                              - custom: provide your own via defining bats_format_file_line_reference_custom
+                                        with parameters <filename> <line>, store via `printf -v "$output"`
   -f, --filter <regex>      Only run tests that match the regular expression
   --filter-status <status>  Only run tests with the given status in the last completed (no CTRL+C/SIGINT) run.
                             Valid <status> values are:
                               failed - runs tests that failed or were not present in the last run
                               missed - runs tests that were not present in the last run
+  --filter-tags <comma-separated-tag-list>
+                            Only run tests that match all the tags in the list (&&).
+                            You can negate a tag via prepending '!'.
+                            Specifying this flag multiple times allows for logical or (||):
+                            `--filter-tags A,B --filter-tags A,!C` matches tags (A && B) || (A && !C)
   -F, --formatter <type>    Switch between formatters: pretty (default),
                               tap (default w/o term), tap13, junit, /<absolute path to formatter>
   --gather-test-outputs-in <directory>
@@ -79,7 +90,11 @@ HELP_TEXT_BODY
 expand_path() {
   local path="${1%/}"
   local dirname="${path%/*}"
+  if [[ -z "$dirname" ]]; then
+    dirname=/
+  fi
   local result="$2"
+  local OLDPWD="$PWD"
 
   if [[ "$dirname" == "$path" ]]; then
     dirname="$PWD"
@@ -106,6 +121,7 @@ export BATS_RUN_TMPDIR=
 export BATS_GUARANTEED_MINIMUM_VERSION=0.0.0
 export BATS_LIB_PATH=${BATS_LIB_PATH-/usr/lib/bats}
 BATS_REPORT_OUTPUT_DIR=${BATS_REPORT_OUTPUT_DIR-.}
+export BATS_LINE_REFERENCE_FORMAT=${BATS_LINE_REFERENCE_FORMAT-comma_line}
 
 if [[ ! -d "${BATS_TMPDIR}" ]]; then
   printf "Error: BATS_TMPDIR (%s) does not exist or is not a directory" "${BATS_TMPDIR}" >&2
@@ -178,7 +194,7 @@ while [[ "$#" -ne 0 ]]; do
     ;;
   --report-formatter)
     shift
-    if [[ $1 =~ ^(cat|pretty|junit|tap|tap13)$ ]]; then
+    if [[ $1 =~ ^(cat|pretty|junit|tap|tap13|/.*)$ ]]; then
       report_formatter="$1"
     else
       printf "Unknown report formatter '%s', valid options are %s\n" "$1" "${VALID_FORMATTERS}"
@@ -262,6 +278,10 @@ while [[ "$#" -ne 0 ]]; do
     shift
     flags+=('--filter-tags' "$1")
     ;;
+  --line-reference-format)
+    shift
+    BATS_LINE_REFERENCE_FORMAT=$1
+    ;;
   -*)
     abort "Bad command line option '$1'"
     ;;
@@ -271,6 +291,10 @@ while [[ "$#" -ne 0 ]]; do
   esac
   shift
 done
+
+if [[ ! $BATS_LINE_REFERENCE_FORMAT =~ (custom|comma_line|colon|uri) ]]; then
+  abort "Invalid BATS_LINE_REFERENCE_FORMAT '$BATS_LINE_REFERENCE_FORMAT' (e.g. via --line-reference-format)"
+fi
 
 if [[ -n "${BATS_RUN_TMPDIR:-}" ]]; then
   if [[ -d "$BATS_RUN_TMPDIR" ]]; then
@@ -455,9 +479,22 @@ trap 'BATS_INTERRUPTED=true' INT # let the lower levels handle the interruption
 
 set -o pipefail execfail
 
+# pipe stdin into command and to stdout
+# pipe command stdout to file
+bats_tee() { # <output-file> <command...>
+  local output_file=$1 status=0
+  shift
+  exec 3<&1 # use FD3 to get around pipe
+  tee >(cat >&3) | "$@" >"$output_file" || status=$?
+  if (( status != 0 )); then
+    printf "ERROR: command \`%s\` failed with status %d\n" "$*" "$status" >&2
+  fi
+  return $status
+}
+
 if [[ -n "$report_formatter" ]]; then
   exec bats-exec-suite "${flags[@]}" "${filenames[@]}" |
-    tee >("$interpolated_report_formatter" "${report_formatter_flags[@]}" >"${BATS_REPORT_OUTPUT_DIR}/${BATS_REPORT_FILENAME}") |
+    bats_tee "${BATS_REPORT_OUTPUT_DIR}/${BATS_REPORT_FILENAME}" "$interpolated_report_formatter" "${report_formatter_flags[@]}" |
     bats_test_count_validator |
     "$interpolated_formatter" "${formatter_flags[@]}"
 else

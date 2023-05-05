@@ -97,9 +97,8 @@ while [[ "$#" -ne 0 ]]; do
 done
 
 if [[ "$num_jobs" != 1 ]]; then
-  if ! type -p parallel >/dev/null && [[ -z "$bats_no_parallelize_across_files" ]]; then
+  if ! type -p parallel >/dev/null && parallel --version &>/dev/null && [[ -z "$bats_no_parallelize_across_files" ]]; then
     abort "Cannot execute \"${num_jobs}\" jobs without GNU parallel"
-    exit 1
   fi
   # shellcheck source=lib/bats-core/semaphore.bash
   source "${BATS_ROOT}/lib/bats-core/semaphore.bash"
@@ -108,7 +107,7 @@ fi
 
 # create a file that contains all (filtered) tests to run from all files
 TESTS_LIST_FILE="${BATS_RUN_TMPDIR}/test_list_file.txt"
-
+focus_mode=
 bats_gather_tests() {
   local line test_line tags
   all_tests=()
@@ -131,6 +130,23 @@ bats_gather_tests() {
         line="${BASH_REMATCH[2]}"
       else
         tags=()
+      fi
+      # is this test focused?
+      if bats_all_in tags 'bats:focus'; then
+        if [[ $focus_mode == 1 ]]; then
+          # focused tests in focus mode should just be registered
+          :
+        else
+          # the current test enables focus mode ...
+          focus_mode=1
+          # ... -> remove previously found, unfocused tests
+          all_tests=()
+          : > "$TESTS_LIST_FILE"
+        fi
+      elif [[ $focus_mode == 1 ]]; then
+        # the current test is not focused but focus mode is enabled -> filter out
+        continue
+        # no else -> unfocused tests outside focus mode should just be registered
       fi
       if [[ ${#filter_tags_list[@]} -gt 0 ]]; then
         local match=
@@ -197,6 +213,10 @@ else
   # use UTC (-u) to avoid problems with TZ changes
   BATS_RUNLOG_DATE=$(date -u '+%Y-%m-%d %H:%M:%S UTC')
   export BATS_RUNLOG_FILE="$BATS_RUN_LOGS_DIRECTORY/${BATS_RUNLOG_DATE}.log"
+  if [[ ! -w "$BATS_RUN_LOGS_DIRECTORY" ]]; then
+    printf "WARNING: Cannot write in %s. This run will not write a log!\n" "$BATS_RUN_LOGS_DIRECTORY" >&2
+    BATS_RUNLOG_FILE='/dev/null' # disable runlog file
+  fi
 fi
 
 bats_gather_tests "$@"
@@ -289,16 +309,18 @@ fi
 
 if [[ -n "$bats_no_parallelize_across_files" ]] && [[ ! "$num_jobs" -gt 1 ]]; then
   abort "The flag --no-parallelize-across-files requires at least --jobs 2"
-  exit 1
 fi
 
 if [[ -n "$bats_no_parallelize_within_files" ]] && [[ ! "$num_jobs" -gt 1 ]]; then
   abort "The flag --no-parallelize-across-files requires at least --jobs 2"
-  exit 1
 fi
 
 # only abort on the lowest levels
 trap 'BATS_INTERRUPTED=true' INT
+
+if [[ -n "$focus_mode" ]]; then
+  printf "WARNING: This test run only contains tests tagged \`bats:focus\`!\n"
+fi
 
 bats_exec_suite_status=0
 printf '1..%d\n' "${test_count}"
@@ -328,6 +350,7 @@ trap bats_suite_exit_trap EXIT
 
 exec 3<&1
 
+# shellcheck disable=SC2317
 bats_suite_exit_trap() {
   local print_bats_out="${BATS_SHOW_OUTPUT_OF_SUCCEEDING_TESTS}"
   if [[ -z "${BATS_SETUP_SUITE_COMPLETED}" || -z "${BATS_TEARDOWN_SUITE_COMPLETED}" ]]; then
@@ -354,7 +377,7 @@ bats_suite_exit_trap() {
 
   if [[ -d "$BATS_RUN_LOGS_DIRECTORY" && -n "${BATS_INTERRUPTED:-}" ]]; then
     # aborting a test run with CTRL+C does not save the runlog file
-    rm "$BATS_RUNLOG_FILE"
+    [[ "$BATS_RUNLOG_FILE" != /dev/null ]] && rm "$BATS_RUNLOG_FILE"
   fi
   exit "$bats_exec_suite_status"
 } >&3
@@ -375,6 +398,7 @@ bats_run_teardown_suite() {
   fi
 }
 
+# shellcheck disable=SC2317
 bats_teardown_suite_trap() {
   bats_run_teardown_suite
   bats_suite_exit_trap
@@ -431,4 +455,13 @@ fi
 set -eET
 bats_run_teardown_suite
 
-exit "$bats_exec_suite_status"
+if [[ "$focus_mode" == 1 && $bats_exec_suite_status -eq 0 ]]; then 
+  if [[ ${BATS_NO_FAIL_FOCUS_RUN-} == 1 ]]; then
+    printf "WARNING: This test run only contains tests tagged \`bats:focus\`!\n"
+  else
+    printf "Marking test run as failed due to \`bats:focus\` tag. (Set \`BATS_NO_FAIL_FOCUS_RUN=1\` to disable.)\n" >&2
+    bats_exec_suite_status=1
+  fi
+fi
+
+exit "$bats_exec_suite_status" # the actual exit code will be set by the exit trap using bats_exec_suite_status

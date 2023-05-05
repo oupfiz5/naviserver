@@ -163,14 +163,17 @@ bats_merge_stdout_and_stderr() {
 
 # write separate lines from <input-var> into <output-array>
 bats_separate_lines() { # <output-array> <input-var>
-  local output_array_name="$1"
-  local input_var_name="$2"
+  local -r output_array_name="$1"
+  local -r input_var_name="$2"
+  local input="${!input_var_name}"
   if [[ $keep_empty_lines ]]; then
     local bats_separate_lines_lines=()
-    if [[ -n "${!input_var_name}" ]]; then # avoid getting an empty line for empty input
+    if [[ -n "$input" ]]; then # avoid getting an empty line for empty input
+      # remove one trailing \n if it exists to compensate its addition by <<<
+      input=${input%$'\n'}
       while IFS= read -r line; do
         bats_separate_lines_lines+=("$line")
-      done <<<"${!input_var_name}"
+      done <<<"${input}"
     fi
     eval "${output_array_name}=(\"\${bats_separate_lines_lines[@]}\")"
   else
@@ -271,24 +274,36 @@ run() { # [!|-N] [--keep-empty-lines] [--separate-stderr] [--] <command to run..
   BATS_RUN_COMMAND="${*}"
   set "-$origFlags"
 
-  if [[ ${BATS_VERBOSE_RUN:-} ]]; then
-    printf "%s\n" "$output"
-  fi
+  bats_run_print_output() {
+    if [[ -n "$output" ]]; then
+      printf "%s\n" "$output"
+    fi
+    if [[ "$output_case" == separate && -n "$stderr" ]]; then
+      printf "stderr:\n%s\n" "$stderr"
+    fi
+  }
 
   if [[ -n "$expected_rc" ]]; then
     if [[ "$expected_rc" = "-1" ]]; then
       if [[ "$status" -eq 0 ]]; then
         BATS_ERROR_SUFFIX=", expected nonzero exit code!"
+        bats_run_print_output
         return 1
       fi
     elif [ "$status" -ne "$expected_rc" ]; then
       # shellcheck disable=SC2034
       BATS_ERROR_SUFFIX=", expected exit code $expected_rc, got $status"
+      bats_run_print_output
       return 1
     fi
   elif [[ "$status" -eq 127 ]]; then # "command not found"
     bats_generate_warning 1 "$BATS_RUN_COMMAND"
   fi
+
+  if [[ ${BATS_VERBOSE_RUN:-} ]]; then
+    bats_run_print_output
+  fi
+  
   # don't leak our trap into surrounding code
   trap bats_interrupt_trap INT
 }
@@ -335,8 +350,17 @@ bats_test_begin() {
 }
 
 bats_test_function() {
+  local tags=()
+  if [[ "$1" == --tags ]]; then
+    IFS=',' read -ra tags <<<"$2"
+    shift 2
+  fi
   local test_name="$1"
   BATS_TEST_NAMES+=("$test_name")
+  if [[ "$test_name" == "$BATS_TEST_NAME" ]]; then
+    # shellcheck disable=SC2034
+    BATS_TEST_TAGS=("${tags[@]+${tags[@]}}")
+  fi
 }
 
 # decides whether a failed test should be run again
