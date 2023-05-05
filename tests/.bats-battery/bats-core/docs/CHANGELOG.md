@@ -10,9 +10,69 @@ The format is based on [Keep a Changelog][kac] and this project adheres to
 
 ## [Unreleased]
 
+### Added
+
+* add `${BATS_TEST_TAGS[@]}` for querying the tags during a test (#705)
+* print tags on failing tests (#705)
+* test for negative arguments to `--jobs` (#693)
+* add tests for `--formatter cat` (#710)
+
+### Documentation
+
+* clarify use cases of `--formatter cat` (#710)
+
+### Fixed
+
+* fix `${BATS_TEST_NAMES[@]}` containing only `--tags` instead of test name since Bats v1.8.0 (#705)
+* fix `run --keep-empty-lines` counting trailing `\n` as (empty) new line (#711)
+
+#### Documentation
+
+* typos, minor edits (#704)
+
+## [1.9.0] - 2023-02-12
+
+### Added
+
+* add installation instructions for Debian, Fedora, Gentoo, and OpenSUSE (#659)
+* add `--line-reference-format` to switch file/line references in stack traces (#665)
+  * `comma_line` (default): `file.bats, line 1`
+  * `colon`: `file.bats:1`
+  * `uri`: `file:///path/to/file.bats:1`
+  * `custom`: define your own formatter in `bats_format_file_line_reference_custom`
+* add `bats:focus` tag to run only focused tests (#679)
+* add bats-support, bats-assert, bats-file and bats-detik to Dockerfile (#674)
+
+### Documentation
+
+* add `--help` text and `man` page content for `--filter-tags` (#679)
+
+### Fixed
+
+* explicitly check for GNU parallel (#691)
+* wait for report-formatter to finish before ending `bats`' execution,
+  to fix empty files with `--report-fomatter junit` under Docker (#692)
+
+#### Documentation
+
+* improved clarity of section about output in free code (#671)
+* fixed typos (#673)
+* clarify use cases of `run` (#366)
+
+## [1.8.2] - 2022-10-19
+
+### Fixed
+
+* fix non zero return code on successful retried tests (#670)
+* fix `skip` in `setup_file` failing test suite (#687)
+
+## [1.8.1] - 2022-10-19
+
 ### Fixed
 
 * `shfmt` all files and enforce via CI (#651)
+* avoid kernel warning flood/hang with CTRL+C on Bash 5.2 RC (#656)
+* Fix infinite wait with (invalid) `-j<n>` (without space) (#657)
 
 ## [1.8.0] - 2022-09-15
 
