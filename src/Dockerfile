@@ -1,3 +1,5 @@
+# syntax=docker/dockerfile:1.4
+
 # * Arguments
 ARG \
     BUILD_DATE="${BUILD_DATE}" \
@@ -51,7 +53,7 @@ LABEL \
     org.opencontainers.image.url="https://chiselapp.com/user/oupfiz5/repository/naviserver/home" \
     org.opencontainers.image.documentation="https://chiselapp.com/user/oupfiz5/repository/naviserver/wiki" \
     org.opencontainers.image.source="https://chiselapp.com/user/oupfiz5/repository/naviserver/brlist" \
-    org.opencontainers.image.version="0.0.1d" \
+    org.opencontainers.image.version="0.0.2d" \
     org.opencontainers.image.revision="" \
     org.opencontainers.image.vendor="" \
     org.opencontainers.image.licenses="" \
